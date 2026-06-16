@@ -24,7 +24,7 @@ struct SSHConnectionEditorView: View {
                     }
                 }
 
-                field("私钥", text: $draft.privateKeyPath)
+                privateKeyField
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("备注")
@@ -56,6 +56,19 @@ struct SSHConnectionEditorView: View {
         }
         .padding(20)
         .frame(width: 420)
+    }
+
+    private var privateKeyField: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("私钥")
+            HStack(spacing: 8) {
+                TextField("私钥", text: $draft.privateKeyPath)
+                Button("浏览...") {
+                    guard let path = SSHPrivateKeyFilePicker.select() else { return }
+                    draft.privateKeyPath = path
+                }
+            }
+        }
     }
 
     private func field(
