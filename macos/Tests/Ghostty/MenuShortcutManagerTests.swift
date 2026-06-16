@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import SwiftUI
 import Testing
 @testable import Ghostty
 
@@ -46,5 +47,28 @@ struct MenuShortcutManagerTests {
 
         #expect(goToLeftItem.keyEquivalent == "h")
         #expect(goToLeftItem.keyEquivalentModifierMask == .command)
+    }
+
+    @Test
+    func sshSidebarShortcutUsesNonDefaultCombination() async throws {
+        let config = try TemporaryConfig("")
+        let shortcut = KeyboardShortcut("s", modifiers: [.command, .option, .shift])
+
+        let item = NSMenuItem(title: "SSH 连接", action: "toggleSSHConnectionsSidebar:", keyEquivalent: "s")
+        item.keyEquivalentModifierMask = [.command, .option, .shift]
+
+        let manager = await Ghostty.MenuShortcutManager()
+        await manager.reset()
+
+        await manager.syncMenuShortcut(config, action: nil, menuItem: item)
+
+        #expect(item.keyEquivalent == "s")
+        #expect(item.keyEquivalentModifierMask == [.command, .option, .shift])
+        #expect(config.keyboardShortcut(for: "new_window") != shortcut)
+        #expect(config.keyboardShortcut(for: "new_tab") != shortcut)
+        #expect(config.keyboardShortcut(for: "reload_config") != shortcut)
+        #expect(config.keyboardShortcut(for: "toggle_command_palette") != shortcut)
+        #expect(config.keyboardShortcut(for: "toggle_quick_terminal") != shortcut)
+        #expect(config.keyboardShortcut(for: "toggle_visibility") != shortcut)
     }
 }

@@ -17,6 +17,9 @@ prepare_core="auto"
 install_app=1
 create_dmg=1
 quiet_xcode=1
+official_bundle_id="com.mitchellh.ghostty"
+required_zig_version="0.15.2"
+zig_cmd="${ZIG:-}"
 
 die() {
     print -u2 -- "error: $*"
@@ -46,6 +49,7 @@ Options:
   --skip-core             Do not run Zig preparation
   --no-install            Build and package without installing the app
   --no-dmg                Build and install without creating the DMG
+  --zig <path>            Zig executable. Default: ZIG env, then zig@0.15
   --verbose-xcode         Show full xcodebuild output
   -h, --help              Show this help
 
@@ -61,6 +65,44 @@ require_command() {
 
 require_value() {
     [[ $# -ge 2 ]] || die "$1 requires a value"
+}
+
+resolve_zig() {
+    local candidates=()
+    local candidate version
+
+    if [[ -n "$zig_cmd" ]]; then
+        candidates+=("$zig_cmd")
+    fi
+    candidates+=(
+        "/opt/homebrew/opt/zig@0.15/bin/zig"
+        "/usr/local/opt/zig@0.15/bin/zig"
+    )
+    if command -v zig >/dev/null 2>&1; then
+        candidates+=("$(command -v zig)")
+    fi
+
+    for candidate in "${candidates[@]}"; do
+        [[ -x "$candidate" ]] || continue
+        version=$("$candidate" version 2>/dev/null) || continue
+        if [[ "$version" == "$required_zig_version" ]]; then
+            zig_cmd="$candidate"
+            return
+        fi
+    done
+
+    die "missing Zig $required_zig_version. Install it with: brew install zig@0.15, or pass --zig /path/to/zig"
+}
+
+run_zig_build() {
+    env \
+        -u HTTP_PROXY \
+        -u HTTPS_PROXY \
+        -u ALL_PROXY \
+        -u http_proxy \
+        -u https_proxy \
+        -u all_proxy \
+        "$zig_cmd" build "$@"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -121,6 +163,11 @@ while [[ $# -gt 0 ]]; do
             create_dmg=0
             shift
             ;;
+        --zig)
+            require_value "$@"
+            zig_cmd="$2"
+            shift 2
+            ;;
         --verbose-xcode)
             quiet_xcode=0
             shift
@@ -144,23 +191,56 @@ if (( create_dmg )); then
     require_command create-dmg
 fi
 
-core_lib="$repo_root/macos/GhosttyKit.xcframework/macos-arm64/libghostty-internal-fat.a"
+migrate_config() {
+    local dest_dir="$HOME/Library/Application Support/$bundle_id"
+    local dest="$dest_dir/config.ghostty"
+    local legacy_dest="$dest_dir/config"
+    local candidates=(
+        "$HOME/Library/Application Support/$official_bundle_id/config.ghostty"
+        "$HOME/Library/Application Support/$official_bundle_id/config"
+        "$HOME/.config/ghostty/config.ghostty"
+        "$HOME/.config/ghostty/config"
+    )
+
+    if [[ -e "$dest" || -e "$legacy_dest" ]]; then
+        log "Keeping existing SSH test config at $dest_dir"
+        return
+    fi
+
+    for source in "${candidates[@]}"; do
+        if [[ -s "$source" ]]; then
+            log "Migrating initial SSH test config from $source"
+            mkdir -p "$dest_dir"
+            cp "$source" "$dest"
+            chmod 600 "$dest"
+            return
+        fi
+    done
+
+    log "No existing Ghostty config found to migrate"
+}
+
+core_lib="$repo_root/macos/GhosttyKit.xcframework/macos-arm64_x86_64/ghostty-internal.a"
 resources_dir="$repo_root/zig-out/share"
 needs_core=0
 if [[ ! -f "$core_lib" || ! -d "$resources_dir" ]]; then
     needs_core=1
 fi
+if [[ "$bundle_id" != "$official_bundle_id" && "$prepare_core" == "auto" ]]; then
+    needs_core=1
+fi
 
 if [[ "$prepare_core" == "yes" || ( "$prepare_core" == "auto" && "$needs_core" == "1" ) ]]; then
-    require_command zig
-    log "Preparing GhosttyKit.xcframework and resources with Zig"
+    resolve_zig
+    log "Preparing GhosttyKit.xcframework and resources with Zig $required_zig_version for $bundle_id"
     (
         cd "$repo_root"
-        zig build -Demit-macos-app=false
+        run_zig_build -Demit-macos-app=false -Dbundle-id="$bundle_id"
     )
 elif [[ "$prepare_core" == "auto" ]]; then
     log "Using existing GhosttyKit.xcframework and zig-out resources"
 else
+    [[ "$bundle_id" == "$official_bundle_id" ]] || die "--skip-core cannot be used with custom bundle id $bundle_id; rebuild core so config paths are isolated"
     log "Skipping Zig core preparation"
 fi
 
@@ -218,6 +298,8 @@ fi
 if /usr/libexec/PlistBuddy -c "Print :NSServices:1:NSMenuItem:default" "$plist" >/dev/null 2>&1; then
     /usr/libexec/PlistBuddy -c "Set :NSServices:1:NSMenuItem:default New $app_name Window Here" "$plist"
 fi
+
+migrate_config
 
 log "Signing staged app"
 codesign --force --deep --sign - "$staged_app"

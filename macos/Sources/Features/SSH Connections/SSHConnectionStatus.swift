@@ -9,13 +9,13 @@ enum SSHConnectionStatus: String, Codable, Equatable, Sendable {
     var label: String {
         switch self {
         case .unknown:
-            "Unknown"
+            "未知"
         case .checking:
-            "Checking"
+            "检测中"
         case .online:
-            "Online"
+            "在线"
         case .offline:
-            "Offline"
+            "离线"
         }
     }
 

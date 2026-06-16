@@ -9,9 +9,9 @@ final class SSHConnectionStore: ObservableObject {
         var errorDescription: String? {
             switch self {
             case .loadFailed:
-                "SSH connections could not be loaded."
+                "无法加载 SSH 连接。"
             case .saveFailed:
-                "SSH connections could not be saved."
+                "无法保存 SSH 连接。"
             }
         }
     }

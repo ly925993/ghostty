@@ -43,9 +43,8 @@ pub const font_backend: font.Backend = config.font_backend;
 pub const renderer: rendererpkg.Backend = config.renderer;
 pub const i18n: bool = config.i18n;
 
-/// The bundle ID for the app. This is used in many places and is currently
-/// hardcoded here. We could make this configurable in the future if there
-/// is a reason to do so.
+/// The bundle ID for the app. This is used in many places and must match
+/// the macOS app bundle ID for builds that use Application Support paths.
 ///
 /// On macOS, this must match the App bundle ID. We can get that dynamically
 /// via an API but I don't want to pay the cost of that at runtime.
@@ -53,9 +52,8 @@ pub const i18n: bool = config.i18n;
 /// On GTK, this should match the various folders with resources.
 ///
 /// There are many places that don't use this variable so simply swapping
-/// this variable is NOT ENOUGH to change the bundle ID. I just wanted to
-/// avoid it in Zig coe as much as possible.
-pub const bundle_id = "com.mitchellh.ghostty";
+/// this variable is NOT ENOUGH to change the visible app identity.
+pub const bundle_id = options.bundle_id;
 
 /// True if we should have "slow" runtime safety checks. The initial motivation
 /// for this was terminal page/pagelist integrity checks. These were VERY

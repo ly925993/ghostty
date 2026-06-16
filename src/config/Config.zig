@@ -4032,22 +4032,25 @@ fn writeConfigTemplate(path: []const u8) !void {
 /// then `config.ghostty`.
 pub fn loadDefaultFiles(self: *Config, alloc: Allocator) !void {
     // Load XDG first
-    const legacy_xdg_path = try file_load.legacyDefaultXdgPath(alloc);
-    defer alloc.free(legacy_xdg_path);
-    const xdg_path = try file_load.defaultXdgPath(alloc);
-    defer alloc.free(xdg_path);
-    const xdg_loaded: bool = xdg_loaded: {
+    var xdg_loaded = false;
+    var xdg_path_to_template: ?[]const u8 = null;
+    defer if (xdg_path_to_template) |path| alloc.free(path);
+    if (file_load.shouldLoadXdgDefaults()) {
+        const legacy_xdg_path = try file_load.legacyDefaultXdgPath(alloc);
+        defer alloc.free(legacy_xdg_path);
+        const xdg_path = try file_load.defaultXdgPath(alloc);
+        xdg_path_to_template = xdg_path;
         const legacy_xdg_action = self.loadOptionalFile(alloc, legacy_xdg_path);
         const xdg_action = self.loadOptionalFile(alloc, xdg_path);
         if (xdg_action != .not_found and legacy_xdg_action != .not_found) {
             log.warn("both config files `{s}` and `{s}` exist.", .{ legacy_xdg_path, xdg_path });
             log.warn("loading them both in that order", .{});
-            break :xdg_loaded true;
+            xdg_loaded = true;
+        } else {
+            xdg_loaded = xdg_action != .not_found or
+                legacy_xdg_action != .not_found;
         }
-
-        break :xdg_loaded xdg_action != .not_found or
-            legacy_xdg_action != .not_found;
-    };
+    }
 
     // On macOS load the app support directory as well
     if (comptime builtin.os.tag == .macos) {
@@ -4095,6 +4098,7 @@ pub fn loadDefaultFiles(self: *Config, alloc: Allocator) !void {
         }
     } else {
         if (!xdg_loaded) {
+            const xdg_path = xdg_path_to_template.?;
             writeConfigTemplate(xdg_path) catch |err| {
                 log.warn("error creating template config file err={}", .{err});
             };

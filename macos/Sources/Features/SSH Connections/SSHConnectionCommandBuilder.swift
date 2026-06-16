@@ -7,7 +7,7 @@ struct SSHConnectionCommandBuilder {
         var errorDescription: String? {
             switch self {
             case .emptyHost:
-                "Host is required."
+                "请输入主机地址。"
             }
         }
     }

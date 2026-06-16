@@ -37,6 +37,7 @@ wasm_shared: bool = true,
 
 /// Ghostty exe properties
 exe_entrypoint: ExeEntrypoint = .ghostty,
+bundle_id: [:0]const u8 = "com.mitchellh.ghostty",
 version: std.SemanticVersion = .{ .major = 0, .minor = 0, .patch = 0 },
 lib_version: std.SemanticVersion = .{ .major = 0, .minor = 0, .patch = 0 },
 
@@ -229,6 +230,12 @@ pub fn init(b: *std.Build, appVersion: []const u8, libVersion: []const u8) !Conf
 
     //---------------------------------------------------------------
     // Ghostty Exe Properties
+
+    config.bundle_id = try b.allocator.dupeZ(u8, b.option(
+        []const u8,
+        "bundle-id",
+        "The application bundle identifier used for macOS support directories and logging.",
+    ) orelse "com.mitchellh.ghostty");
 
     const version_string = b.option(
         []const u8,
@@ -537,6 +544,7 @@ pub fn addOptions(self: *const Config, step: *std.Build.Step.Options) !void {
     step.addOption(FontBackend, "font_backend", self.font_backend);
     step.addOption(RendererBackend, "renderer", self.renderer);
     step.addOption(ExeEntrypoint, "exe_entrypoint", self.exe_entrypoint);
+    step.addOption([:0]const u8, "bundle_id", self.bundle_id);
     step.addOption(WasmTarget, "wasm_target", self.wasm_target);
     step.addOption(bool, "wasm_shared", self.wasm_shared);
 
@@ -619,6 +627,7 @@ pub fn fromOptions() Config {
 
         .version = options.app_version,
         .flatpak = options.flatpak,
+        .bundle_id = options.bundle_id,
         .app_runtime = std.meta.stringToEnum(ApprtRuntime, @tagName(options.app_runtime)).?,
         .font_backend = std.meta.stringToEnum(FontBackend, @tagName(options.font_backend)).?,
         .renderer = std.meta.stringToEnum(RendererBackend, @tagName(options.renderer)).?,

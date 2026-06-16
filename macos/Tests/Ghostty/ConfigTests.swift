@@ -163,6 +163,15 @@ struct ConfigTests {
         #expect(config.backgroundOpacity == 0.5)
     }
 
+    @Test func foregroundColorUsesConfiguredValue() throws {
+        let config = try TemporaryConfig("foreground = #123456")
+        let color = try #require(NSColor(config.foregroundColor).usingColorSpace(.sRGB))
+
+        #expect(abs(color.redComponent - (0x12 / 255.0)) < 0.001)
+        #expect(abs(color.greenComponent - (0x34 / 255.0)) < 0.001)
+        #expect(abs(color.blueComponent - (0x56 / 255.0)) < 0.001)
+    }
+
     @Test func windowPositionDefaultsToNil() throws {
         let config = try TemporaryConfig("")
         #expect(config.windowPositionX == nil)

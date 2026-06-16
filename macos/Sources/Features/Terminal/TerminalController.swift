@@ -1093,7 +1093,8 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
 
         let workspace = SSHWorkspaceContainerView(
             terminalView: container,
-            viewModel: sshConnectionsViewModel
+            viewModel: sshConnectionsViewModel,
+            config: ghostty.config
         )
         workspace.delegate = self
         window.contentView = workspace

@@ -9,7 +9,7 @@ final class SSHConnectionsViewModel: ObservableObject {
         let connections: [SSHConnection]
 
         var title: String {
-            group?.name ?? "Ungrouped"
+            group?.name ?? "未分组"
         }
     }
 
@@ -239,7 +239,7 @@ final class SSHConnectionsViewModel: ObservableObject {
     func saveGroup(_ draft: GroupDraft) -> Bool {
         let name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else {
-            groupValidationError = "Group name is required."
+            groupValidationError = "请输入分组名称。"
             return false
         }
 
@@ -268,7 +268,7 @@ final class SSHConnectionsViewModel: ObservableObject {
     @discardableResult
     func deleteGroup(_ group: SSHConnectionGroup) -> Bool {
         guard !library.connections.contains(where: { $0.groupID == group.id }) else {
-            alertMessage = "Move or delete connections in this group before deleting it."
+            alertMessage = "请先移动或删除此分组中的连接。"
             return false
         }
 
@@ -286,13 +286,13 @@ final class SSHConnectionsViewModel: ObservableObject {
     func validateConnection(_ draft: ConnectionDraft) -> [ConnectionField: String] {
         var errors: [ConnectionField: String] = [:]
         if draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            errors[.name] = "Name is required."
+            errors[.name] = "请输入名称。"
         }
         if draft.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            errors[.host] = "Host is required."
+            errors[.host] = "请输入主机地址。"
         }
         if portValue(from: draft.port) == nil {
-            errors[.port] = "Port must be between 1 and 65535."
+            errors[.port] = "端口必须在 1 到 65535 之间。"
         }
         return errors
     }

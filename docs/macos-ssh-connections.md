@@ -26,9 +26,17 @@ Use the canonical local package flow when building this feature for testing:
 macos/package-ssh-test.zsh
 ```
 
+The script uses Zig 0.15.2 for the GhosttyKit preparation step. Install the
+matching Homebrew keg first if needed:
+
+```sh
+brew install zig@0.15
+```
+
 The script builds the macOS app, stages a renamed `Ghostty SSH Test.app`, sets
-the test bundle ID `com.mitchellh.ghostty.ssh-test`, ad-hoc signs it, installs
-it to `/Applications/Ghostty SSH Test.app`, creates
+the test bundle ID `com.mitchellh.ghostty.ssh-test`, migrates the first test
+config into that bundle's Application Support directory, ad-hoc signs it,
+installs it to `/Applications/Ghostty SSH Test.app`, creates
 `dist/Ghostty-SSH-Test.dmg`, and verifies both the app signature and the DMG.
 
 If the underlying GhosttyKit library or resources are missing or stale, run:
@@ -38,4 +46,5 @@ macos/package-ssh-test.zsh --prepare-core
 ```
 
 This flow intentionally keeps the test build separate from
-`/Applications/Ghostty.app`.
+`/Applications/Ghostty.app` and keeps its config separate from the official
+`com.mitchellh.ghostty` config.

@@ -8,26 +8,26 @@ struct SSHConnectionEditorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(draft.connectionID == nil ? "Add Server" : "Edit Server")
+            Text(draft.connectionID == nil ? "添加服务器" : "编辑服务器")
                 .font(.headline)
 
             Form {
-                field("Name", text: $draft.name, error: viewModel.connectionValidationErrors[.name])
-                field("Host", text: $draft.host, error: viewModel.connectionValidationErrors[.host])
-                field("Port", text: $draft.port, error: viewModel.connectionValidationErrors[.port])
-                field("Username", text: $draft.username)
+                field("名称", text: $draft.name, error: viewModel.connectionValidationErrors[.name])
+                field("主机", text: $draft.host, error: viewModel.connectionValidationErrors[.host])
+                field("端口", text: $draft.port, error: viewModel.connectionValidationErrors[.port])
+                field("用户名", text: $draft.username)
 
-                Picker("Group", selection: $draft.groupID) {
-                    Text("Ungrouped").tag(UUID?.none)
+                Picker("分组", selection: $draft.groupID) {
+                    Text("未分组").tag(UUID?.none)
                     ForEach(viewModel.library.groups) { group in
                         Text(group.name).tag(Optional(group.id))
                     }
                 }
 
-                field("Private Key", text: $draft.privateKeyPath)
+                field("私钥", text: $draft.privateKeyPath)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Notes")
+                    Text("备注")
                     TextEditor(text: $draft.notes)
                         .font(.body)
                         .frame(minHeight: 72)
@@ -41,12 +41,12 @@ struct SSHConnectionEditorView: View {
 
             HStack {
                 Spacer()
-                Button("Cancel") {
+                Button("取消") {
                     dismiss()
                 }
                 .keyboardShortcut(.cancelAction)
 
-                Button("Save") {
+                Button("保存") {
                     if viewModel.saveConnection(draft) {
                         dismiss()
                     }

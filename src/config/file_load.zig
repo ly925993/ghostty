@@ -3,6 +3,7 @@ const builtin = @import("builtin");
 const assert = @import("../quirks.zig").inlineAssert;
 const Allocator = std.mem.Allocator;
 const internal_os = @import("../os/main.zig");
+const build_config = @import("../build_config.zig");
 
 const log = std.log.scoped(.config);
 
@@ -96,6 +97,8 @@ pub fn preferredAppSupportPath(alloc: Allocator) ![]const u8 {
 pub fn preferredDefaultFilePath(alloc: Allocator) ![]const u8 {
     switch (builtin.os.tag) {
         .macos => {
+            if (isCustomMacOSBundle()) return try preferredAppSupportPath(alloc);
+
             // macOS prefers the Application Support directory
             // if it exists.
             const app_support_path = try preferredAppSupportPath(alloc);
@@ -118,6 +121,17 @@ pub fn preferredDefaultFilePath(alloc: Allocator) ![]const u8 {
         // All other platforms use XDG only
         else => return try preferredXdgPath(alloc),
     }
+}
+
+pub fn shouldLoadXdgDefaults() bool {
+    return switch (builtin.os.tag) {
+        .macos => !isCustomMacOSBundle(),
+        else => true,
+    };
+}
+
+fn isCustomMacOSBundle() bool {
+    return !std.mem.eql(u8, build_config.bundle_id, "com.mitchellh.ghostty");
 }
 
 const OpenFileError = error{

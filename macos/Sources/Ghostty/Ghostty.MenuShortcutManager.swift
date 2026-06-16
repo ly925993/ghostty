@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import GhosttyKit
 
 extension Ghostty {
     /// The manager that's responsible for updating shortcuts of Ghostty's app menu
@@ -24,6 +25,11 @@ extension Ghostty {
             guard let menu = menuItem else { return }
 
             if !updateMenuShortcut(config, action: action, menuItem: menu) {
+                if action == nil,
+                   !menuShortcutConflictsWithConfig(config, menuItem: menu) {
+                    return
+                }
+
                 menu.keyEquivalent = ""
                 menu.keyEquivalentModifierMask = []
             }
@@ -95,6 +101,24 @@ private extension Ghostty.MenuShortcutManager {
         // Later registrations intentionally override earlier ones for the same key.
         menuItemsByShortcut[key] = .init(menu)
         return true
+    }
+
+    func menuShortcutConflictsWithConfig(_ config: Ghostty.Config, menuItem: NSMenuItem) -> Bool {
+        guard
+            let cfg = config.config,
+            let key = Ghostty.MenuShortcutManager.MenuShortcutKey(menuItem),
+            let scalar = key.keyEquivalent.unicodeScalars.first,
+            key.keyEquivalent.unicodeScalars.count == 1
+        else { return false }
+
+        var event: ghostty_input_key_s = .init()
+        event.action = GHOSTTY_ACTION_PRESS
+        event.mods = Ghostty.ghosttyMods(key.modifierFlags)
+        event.consumed_mods = Ghostty.ghosttyMods(
+            key.modifierFlags.subtracting([.control, .command])
+        )
+        event.unshifted_codepoint = UInt32(scalar.value)
+        return ghostty_config_key_is_binding(cfg, event)
     }
 }
 

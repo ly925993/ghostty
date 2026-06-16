@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SSHConnectionsSidebarView: View {
     @ObservedObject var viewModel: SSHConnectionsViewModel
+    var config: Ghostty.Config?
     var onConnect: (SSHConnection) -> Void
     var onClose: () -> Void
 
@@ -13,36 +14,37 @@ struct SSHConnectionsSidebarView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-            Divider()
+            divider
             search
             content
-            Divider()
+            divider
             footer
         }
         .frame(minWidth: 260, idealWidth: 300, maxWidth: 360)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(theme.background)
+        .foregroundStyle(theme.foreground)
         .sheet(item: $connectionDraft) { draft in
             SSHConnectionEditorView(viewModel: viewModel, draft: draft)
         }
         .sheet(item: $groupDraft) { draft in
             SSHGroupEditorView(viewModel: viewModel, draft: draft)
         }
-        .alert("SSH Connections", isPresented: Binding(
+        .alert("SSH 连接", isPresented: Binding(
             get: { viewModel.alertMessage != nil },
             set: { if !$0 { viewModel.alertMessage = nil } }
         )) {
-            Button("OK", role: .cancel) {}
+            Button("确定", role: .cancel) {}
         } message: {
             Text(viewModel.alertMessage ?? "")
         }
-        .alert("Delete SSH Item?", isPresented: Binding(
+        .alert("删除 SSH 项目？", isPresented: Binding(
             get: { pendingDelete != nil },
             set: { if !$0 { pendingDelete = nil } }
         ), presenting: pendingDelete) { pendingDelete in
             Button(pendingDelete.buttonTitle, role: .destructive) {
                 confirmDelete(pendingDelete)
             }
-            Button("Cancel", role: .cancel) {}
+            Button("取消", role: .cancel) {}
         } message: { pendingDelete in
             Text(pendingDelete.message)
         }
@@ -50,7 +52,7 @@ struct SSHConnectionsSidebarView: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            Text("SSH")
+            Text("SSH 连接")
                 .font(.headline)
             Spacer()
             Button {
@@ -58,7 +60,7 @@ struct SSHConnectionsSidebarView: View {
             } label: {
                 Image(systemName: "arrow.clockwise")
             }
-            .help("Refresh Status")
+            .help("刷新状态")
             .buttonStyle(.borderless)
 
             Button {
@@ -66,7 +68,7 @@ struct SSHConnectionsSidebarView: View {
             } label: {
                 Image(systemName: "plus")
             }
-            .help("Add Server")
+            .help("添加服务器")
             .buttonStyle(.borderless)
 
             Button {
@@ -74,7 +76,7 @@ struct SSHConnectionsSidebarView: View {
             } label: {
                 Image(systemName: "sidebar.left")
             }
-            .help("Hide SSH Connections")
+            .help("隐藏 SSH 连接")
             .buttonStyle(.borderless)
         }
         .padding(.horizontal, 12)
@@ -85,12 +87,16 @@ struct SSHConnectionsSidebarView: View {
         HStack {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
-            TextField("Search servers", text: $viewModel.searchText)
+            TextField("搜索服务器", text: $viewModel.searchText)
                 .textFieldStyle(.plain)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(Color(nsColor: .textBackgroundColor))
+        .background(theme.searchBackground)
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(theme.divider, lineWidth: 0.5)
+        )
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .padding(10)
     }
@@ -100,18 +106,18 @@ struct SSHConnectionsSidebarView: View {
         switch viewModel.contentState {
         case .emptyLibrary:
             emptyState(
-                title: "No servers",
+                title: "暂无服务器",
                 systemImage: "server.rack",
-                actionTitle: "Add Server"
+                actionTitle: "添加服务器"
             ) {
                 connectionDraft = viewModel.connectionDraft()
             }
 
         case .noResults:
             emptyState(
-                title: "No matches",
+                title: "没有匹配结果",
                 systemImage: "magnifyingglass",
-                actionTitle: "Add Server"
+                actionTitle: "添加服务器"
             ) {
                 connectionDraft = viewModel.connectionDraft()
             }
@@ -141,7 +147,7 @@ struct SSHConnectionsSidebarView: View {
             Button {
                 groupDraft = viewModel.groupDraft()
             } label: {
-                Label("Group", systemImage: "folder.badge.plus")
+                Label("分组", systemImage: "folder.badge.plus")
             }
 
             Spacer()
@@ -149,7 +155,7 @@ struct SSHConnectionsSidebarView: View {
             Button {
                 connectionDraft = viewModel.connectionDraft()
             } label: {
-                Label("Server", systemImage: "server.rack")
+                Label("服务器", systemImage: "server.rack")
             }
         }
         .labelStyle(.titleAndIcon)
@@ -188,18 +194,18 @@ struct SSHConnectionsSidebarView: View {
         }
         .contextMenu {
             if let group = section.group {
-                Button("Add Server") {
+                Button("添加服务器") {
                     connectionDraft = viewModel.connectionDraft(for: group.id)
                 }
-                Button("Edit Group") {
+                Button("编辑分组") {
                     groupDraft = viewModel.groupDraft(for: group)
                 }
-                Button("Delete Group", role: .destructive) {
+                Button("删除分组", role: .destructive) {
                     pendingDelete = .group(group)
                 }
                 Divider()
             }
-            Button("Refresh Status") {
+            Button("刷新状态") {
                 viewModel.refresh(section)
             }
         }
@@ -225,17 +231,17 @@ struct SSHConnectionsSidebarView: View {
         }
         .buttonStyle(.plain)
         .contextMenu {
-            Button("Connect") {
+            Button("连接") {
                 onConnect(connection)
             }
-            Button("Edit Server") {
+            Button("编辑服务器") {
                 connectionDraft = viewModel.connectionDraft(for: connection)
             }
-            Button("Refresh Status") {
+            Button("刷新状态") {
                 viewModel.refresh(connection)
             }
             Divider()
-            Button("Delete Server", role: .destructive) {
+            Button("删除服务器", role: .destructive) {
                 pendingDelete = .connection(connection)
             }
         }
@@ -256,6 +262,16 @@ struct SSHConnectionsSidebarView: View {
             ? connection.host
             : "\(connection.username)@\(connection.host)"
         return connection.port == 22 ? destination : "\(destination):\(connection.port)"
+    }
+
+    private var divider: some View {
+        Rectangle()
+            .fill(theme.divider)
+            .frame(height: 0.5)
+    }
+
+    private var theme: SSHSidebarTheme {
+        SSHSidebarTheme(config: config)
     }
 
     private func bindingForSection(_ section: SSHConnectionsViewModel.Section) -> Binding<Bool> {
@@ -297,19 +313,33 @@ struct SSHConnectionsSidebarView: View {
         var buttonTitle: String {
             switch self {
             case .connection:
-                "Delete Server"
+                "删除服务器"
             case .group:
-                "Delete Group"
+                "删除分组"
             }
         }
 
         var message: String {
             switch self {
             case .connection:
-                "This server will be removed from the SSH connection library."
+                "此服务器将从 SSH 连接库中移除。"
             case .group:
-                "This group will be removed if it has no servers."
+                "如果此分组下没有服务器，将删除该分组。"
             }
         }
+    }
+}
+
+private struct SSHSidebarTheme {
+    let background: Color
+    let foreground: Color
+    let searchBackground: Color
+    let divider: Color
+
+    init(config: Ghostty.Config?) {
+        background = config?.backgroundColor ?? Color(nsColor: .controlBackgroundColor)
+        foreground = config?.foregroundColor ?? Color.primary
+        divider = config?.splitDividerColor ?? Color(nsColor: .separatorColor)
+        searchBackground = config?.backgroundColor.opacity(0.88) ?? Color(nsColor: .textBackgroundColor)
     }
 }

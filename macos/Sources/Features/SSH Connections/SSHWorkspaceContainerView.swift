@@ -34,7 +34,8 @@ final class SSHWorkspaceContainerView: NSView {
 
     init(
         terminalView: TerminalViewContainer,
-        viewModel: SSHConnectionsViewModel
+        viewModel: SSHConnectionsViewModel,
+        config: Ghostty.Config? = nil
     ) {
         self.terminalView = terminalView
 
@@ -42,6 +43,7 @@ final class SSHWorkspaceContainerView: NSView {
 
         let sidebarView = SSHConnectionsSidebarView(
             viewModel: viewModel,
+            config: config,
             onConnect: { [weak self] connection in
                 guard let self else { return }
                 self.delegate?.sshWorkspaceContainerView(self, didRequestConnect: connection)

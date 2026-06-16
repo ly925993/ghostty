@@ -65,9 +65,9 @@ struct SSHConnectionsViewModelTests {
         )
 
         #expect(!viewModel.saveConnection(draft))
-        #expect(viewModel.connectionValidationErrors[.name] == "Name is required.")
-        #expect(viewModel.connectionValidationErrors[.host] == "Host is required.")
-        #expect(viewModel.connectionValidationErrors[.port] == "Port must be between 1 and 65535.")
+        #expect(viewModel.connectionValidationErrors[.name] == "请输入名称。")
+        #expect(viewModel.connectionValidationErrors[.host] == "请输入主机地址。")
+        #expect(viewModel.connectionValidationErrors[.port] == "端口必须在 1 到 65535 之间。")
     }
 
     @Test func portValidationRejectsOutOfRangeValues() {
@@ -78,14 +78,14 @@ struct SSHConnectionsViewModelTests {
             host: "api.example.com",
             port: "0"
         )))
-        #expect(viewModel.connectionValidationErrors[.port] == "Port must be between 1 and 65535.")
+        #expect(viewModel.connectionValidationErrors[.port] == "端口必须在 1 到 65535 之间。")
 
         #expect(!viewModel.saveConnection(SSHConnectionsViewModel.ConnectionDraft(
             name: "API",
             host: "api.example.com",
             port: "65536"
         )))
-        #expect(viewModel.connectionValidationErrors[.port] == "Port must be between 1 and 65535.")
+        #expect(viewModel.connectionValidationErrors[.port] == "端口必须在 1 到 65535 之间。")
     }
 
     @Test func deletingNonEmptyGroupIsBlocked() {
@@ -97,7 +97,7 @@ struct SSHConnectionsViewModelTests {
         ))
 
         #expect(!viewModel.deleteGroup(group))
-        #expect(viewModel.alertMessage == "Move or delete connections in this group before deleting it.")
+        #expect(viewModel.alertMessage == "请先移动或删除此分组中的连接。")
         #expect(viewModel.library.groups == [group])
     }
 
@@ -123,7 +123,7 @@ struct SSHConnectionsViewModelTests {
         )))
 
         let message = try #require(viewModel.alertMessage)
-        #expect(message == "SSH connections could not be saved.")
+        #expect(message == "无法保存 SSH 连接。")
         #expect(!message.contains("sensitive.example.com"))
         #expect(!message.contains("secret-user"))
         #expect(!message.contains("/Users/me/.ssh/private"))

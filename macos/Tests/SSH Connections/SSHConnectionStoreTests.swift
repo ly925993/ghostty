@@ -74,7 +74,7 @@ struct SSHConnectionStoreTests {
         let message = try #require(store.loadError?.localizedDescription)
 
         #expect(store.library == SSHConnectionLibrary())
-        #expect(message == "SSH connections could not be loaded.")
+        #expect(message == "无法加载 SSH 连接。")
         #expect(!message.contains("sensitive.example.com"))
         #expect(!message.contains("secret-user"))
         #expect(!message.contains("/Users/me/.ssh/private"))
@@ -97,7 +97,7 @@ struct SSHConnectionStoreTests {
 
         #expect(!blockedStore.save(next))
         let message = try #require(blockedStore.saveError?.localizedDescription)
-        #expect(message == "SSH connections could not be saved.")
+        #expect(message == "无法保存 SSH 连接。")
         #expect(!message.contains("sensitive.example.com"))
         #expect(!message.contains("secret-user"))
         #expect(blockedStore.library == SSHConnectionLibrary())

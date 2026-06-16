@@ -8,11 +8,11 @@ struct SSHGroupEditorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(draft.groupID == nil ? "Add Group" : "Edit Group")
+            Text(draft.groupID == nil ? "添加分组" : "编辑分组")
                 .font(.headline)
 
             VStack(alignment: .leading, spacing: 4) {
-                TextField("Group Name", text: $draft.name)
+                TextField("分组名称", text: $draft.name)
                 if let error = viewModel.groupValidationError {
                     Text(error)
                         .foregroundStyle(.red)
@@ -22,12 +22,12 @@ struct SSHGroupEditorView: View {
 
             HStack {
                 Spacer()
-                Button("Cancel") {
+                Button("取消") {
                     dismiss()
                 }
                 .keyboardShortcut(.cancelAction)
 
-                Button("Save") {
+                Button("保存") {
                     if viewModel.saveGroup(draft) {
                         dismiss()
                     }
