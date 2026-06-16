@@ -61,6 +61,9 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
     /// The notification cancellable for focused surface property changes.
     private var surfaceAppearanceCancellables: Set<AnyCancellable> = []
 
+    /// View model backing this window's SSH sidebar. The underlying store is shared.
+    @MainActor private lazy var sshConnectionsViewModel = SSHConnectionsViewModel()
+
     init(_ ghostty: Ghostty.App,
          withBaseConfig base: Ghostty.SurfaceConfiguration? = nil,
          withSurfaceTree tree: SplitTree<Ghostty.SurfaceView>? = nil,
@@ -1077,7 +1080,7 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
             focusedSurface = view
         }
 
-        // Initialize our content view to the SwiftUI root
+        // Initialize our terminal content view to the SwiftUI root.
         let container = TerminalViewContainer {
             TerminalView(ghostty: ghostty, viewModel: self, delegate: self)
         }
@@ -1088,7 +1091,12 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
         // SwiftUI focus chain.
         container.initialContentSize = focusedSurface?.initialSize
 
-        window.contentView = container
+        let workspace = SSHWorkspaceContainerView(
+            terminalView: container,
+            viewModel: sshConnectionsViewModel
+        )
+        workspace.delegate = self
+        window.contentView = workspace
 
         // If we have a default size, we want to apply it.
         if let defaultSize {
@@ -1395,6 +1403,17 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
         ghostty.toggleTerminalInspector(surface: surface)
     }
 
+    @IBAction func toggleSSHConnectionsSidebar(_ sender: Any?) {
+        guard let workspace = window?.contentView as? SSHWorkspaceContainerView else { return }
+        workspace.toggleSidebar()
+
+        if !workspace.isSidebarVisible, let focusedSurface {
+            DispatchQueue.main.async {
+                Ghostty.moveFocus(to: focusedSurface)
+            }
+        }
+    }
+
     // MARK: - TerminalViewDelegate
 
     override func focusedSurfaceDidChange(to: Ghostty.SurfaceView?) {
@@ -1626,6 +1645,11 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
 extension TerminalController {
     override func validateMenuItem(_ item: NSMenuItem) -> Bool {
         switch item.action {
+        case #selector(toggleSSHConnectionsSidebar):
+            guard let workspace = window?.contentView as? SSHWorkspaceContainerView else { return false }
+            item.state = workspace.isSidebarVisible ? .on : .off
+            return true
+
         case #selector(closeTabsOnTheRight):
             guard let window, let tabGroup = window.tabGroup else { return false }
             guard let currentIndex = tabGroup.windows.firstIndex(of: window) else { return false }
@@ -1650,6 +1674,38 @@ extension TerminalController {
 
         default:
             return super.validateMenuItem(item)
+        }
+    }
+}
+
+// MARK: - SSHWorkspaceContainerViewDelegate
+
+extension TerminalController: SSHWorkspaceContainerViewDelegate {
+    func sshWorkspaceContainerViewDidRequestCloseSidebar(_ container: SSHWorkspaceContainerView) {
+        container.isSidebarVisible = false
+
+        if let focusedSurface {
+            DispatchQueue.main.async {
+                Ghostty.moveFocus(to: focusedSurface)
+            }
+        }
+    }
+
+    func sshWorkspaceContainerView(
+        _ container: SSHWorkspaceContainerView,
+        didRequestConnect connection: SSHConnection
+    ) {
+        do {
+            let config = try SSHConnectionCommandBuilder().buildConfiguration(for: connection)
+            _ = TerminalController.newTab(ghostty, from: window, withBaseConfig: config)
+        } catch {
+            sshConnectionsViewModel.presentError(error)
+        }
+
+        if let focusedSurface {
+            DispatchQueue.main.async {
+                Ghostty.moveFocus(to: focusedSurface)
+            }
         }
     }
 }

@@ -1,0 +1,41 @@
+import SwiftUI
+
+struct SSHGroupEditorView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    @ObservedObject var viewModel: SSHConnectionsViewModel
+    @State var draft: SSHConnectionsViewModel.GroupDraft
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(draft.groupID == nil ? "Add Group" : "Edit Group")
+                .font(.headline)
+
+            VStack(alignment: .leading, spacing: 4) {
+                TextField("Group Name", text: $draft.name)
+                if let error = viewModel.groupValidationError {
+                    Text(error)
+                        .foregroundStyle(.red)
+                        .font(.caption)
+                }
+            }
+
+            HStack {
+                Spacer()
+                Button("Cancel") {
+                    dismiss()
+                }
+                .keyboardShortcut(.cancelAction)
+
+                Button("Save") {
+                    if viewModel.saveGroup(draft) {
+                        dismiss()
+                    }
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(20)
+        .frame(width: 320)
+    }
+}

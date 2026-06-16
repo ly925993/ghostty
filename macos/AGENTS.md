@@ -9,6 +9,12 @@
   - Build: `macos/build.nu [--scheme Ghostty] [--configuration Debug] [--action build]`
   - Output: `macos/build/<configuration>/Ghostty.app` (e.g. `macos/build/Debug/Ghostty.app`)
 - Run unit tests directly with `macos/build.nu --action test`
+- For local SSH sidebar testing packages, use `macos/package-ssh-test.zsh`.
+  This is the canonical local packaging flow: build with Xcode, stage a
+  renamed app, set the test bundle ID, ad-hoc sign it, install it as
+  `/Applications/Ghostty SSH Test.app`, create `dist/Ghostty-SSH-Test.dmg`,
+  and verify both the app signature and DMG checksum. Do not overwrite
+  `/Applications/Ghostty.app` for this workflow.
 
 ## AppleScript
 

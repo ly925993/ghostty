@@ -4,6 +4,32 @@ Ghostty relies on downstream package maintainers to distribute Ghostty to
 end-users. This document provides guidance to package maintainers on how to
 package Ghostty for distribution.
 
+## Local macOS SSH Test Packages
+
+For local testing of the macOS SSH sidebar build, use the repository script:
+
+```sh
+macos/package-ssh-test.zsh
+```
+
+This is a local developer/test packaging flow, not the signed distribution
+release flow. It performs the same steps used for the local SSH test build:
+
+1. Ensure `macos/GhosttyKit.xcframework` and `zig-out/share` exist, running
+   `zig build -Demit-macos-app=false` only when they are missing or when
+   `--prepare-core` is passed.
+2. Build the macOS app with `xcodebuild` into `macos/build/<configuration>`.
+3. Stage a renamed `Ghostty SSH Test.app`.
+4. Set the test bundle ID to `com.mitchellh.ghostty.ssh-test`.
+5. Ad-hoc sign the staged app.
+6. Install it as `/Applications/Ghostty SSH Test.app`.
+7. Create `dist/Ghostty-SSH-Test.dmg`.
+8. Verify the installed app signature and DMG checksum.
+
+Use `--prepare-core` after changing Zig/core code or resources. The script
+refuses to overwrite `/Applications/Ghostty.app`; this workflow is only for the
+separate local test app.
+
 > [!IMPORTANT]
 >
 > This document is only accurate for the Ghostty source alongside it.
