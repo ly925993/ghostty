@@ -21,6 +21,29 @@ struct SSHWorkspaceContainerViewTests {
         #expect(workspace.isSidebarVisible)
     }
 
+    @Test func sidebarPanelCollapseKeepsRailWidthVisible() {
+        let terminalView = TerminalViewContainer {
+            EmptyView()
+        }
+        let viewModel = SSHConnectionsViewModel(
+            store: SSHConnectionStore(fileURL: temporaryFileURL()),
+            reachabilityChecker: SSHReachabilityChecker(prober: FakeWorkspaceProber())
+        )
+        let workspace = SSHWorkspaceContainerView(
+            terminalView: terminalView,
+            viewModel: viewModel
+        )
+
+        workspace.setSidebarPanelCollapseState(.collapsed)
+
+        #expect(workspace.isSidebarVisible)
+        #expect(workspace.currentSidebarWidth == SSHSidebarLayout.collapsedWidth)
+
+        workspace.setSidebarPanelCollapseState(.expanded)
+
+        #expect(workspace.currentSidebarWidth == SSHSidebarLayout.totalWidth)
+    }
+
     private func temporaryFileURL() -> URL {
         FileManager.default.temporaryDirectory
             .appendingPathComponent("ghostty-ssh-workspace-tests", isDirectory: true)

@@ -45,7 +45,15 @@ struct SSHConnectionsSidebarViewTests {
     @Test func sidebarLayoutKeepsRailAndTreeReadable() {
         #expect(SSHSidebarLayout.railWidth == 56)
         #expect(SSHSidebarLayout.totalWidth == 340)
+        #expect(SSHSidebarLayout.collapsedWidth == SSHSidebarLayout.railWidth)
         #expect(SSHWorkspaceContainerView.sidebarWidth == SSHSidebarLayout.totalWidth)
+    }
+
+    @Test func collapseButtonKeepsNavigationRailAvailable() {
+        #expect(SSHSidebarCollapseState.expanded.width == SSHSidebarLayout.totalWidth)
+        #expect(SSHSidebarCollapseState.collapsed.width == SSHSidebarLayout.collapsedWidth)
+        #expect(SSHSidebarCollapseState.expanded.toggled == .collapsed)
+        #expect(SSHSidebarCollapseState.collapsed.toggled == .expanded)
     }
 
     @Test func tabSnapshotsPreserveOrderAndSelectedWindow() {

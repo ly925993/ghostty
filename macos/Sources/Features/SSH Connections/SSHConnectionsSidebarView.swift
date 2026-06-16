@@ -72,7 +72,49 @@ enum SSHSidebarPanel: String, CaseIterable, Equatable, Identifiable {
 
 enum SSHSidebarLayout {
     static let railWidth: CGFloat = 56
+    static let collapsedWidth: CGFloat = railWidth
     static let totalWidth: CGFloat = 340
+}
+
+enum SSHSidebarCollapseState: Equatable {
+    case expanded
+    case collapsed
+
+    var width: CGFloat {
+        switch self {
+        case .expanded:
+            SSHSidebarLayout.totalWidth
+        case .collapsed:
+            SSHSidebarLayout.collapsedWidth
+        }
+    }
+
+    var toggled: SSHSidebarCollapseState {
+        switch self {
+        case .expanded:
+            .collapsed
+        case .collapsed:
+            .expanded
+        }
+    }
+
+    var toggleSystemImage: String {
+        switch self {
+        case .expanded:
+            "sidebar.left"
+        case .collapsed:
+            "sidebar.right"
+        }
+    }
+
+    var toggleHelp: String {
+        switch self {
+        case .expanded:
+            "收起 SSH 面板"
+        case .collapsed:
+            "展开 SSH 面板"
+        }
+    }
 }
 
 @MainActor
@@ -130,6 +172,7 @@ struct SSHConnectionsSidebarView: View {
     @ObservedObject var appearance: SSHSidebarAppearance
     @ObservedObject var tabProvider: SSHWindowTabProvider
     var onConnect: (SSHConnection) -> Void
+    var onCollapseStateChange: (SSHSidebarCollapseState) -> Void = { _ in }
     var onClose: () -> Void
 
     @State private var connectionDraft: SSHConnectionsViewModel.ConnectionDraft?
@@ -137,6 +180,7 @@ struct SSHConnectionsSidebarView: View {
     @State private var pendingDelete: PendingDelete?
     @State private var collapsedGroups: Set<String> = []
     @State private var selectedPanel: SSHSidebarPanel = .defaultPanel
+    @State private var collapseState: SSHSidebarCollapseState = .expanded
     @State private var tabSearchText = ""
 
     private let tabRefreshTimer = Timer.publish(every: 0.75, on: .main, in: .common).autoconnect()
@@ -144,18 +188,23 @@ struct SSHConnectionsSidebarView: View {
     var body: some View {
         HStack(spacing: 0) {
             rail
-            dividerVertical
-            mainPanel
+            if collapseState == .expanded {
+                dividerVertical
+                mainPanel
+            }
         }
         .frame(
-            minWidth: SSHSidebarLayout.totalWidth,
-            idealWidth: SSHSidebarLayout.totalWidth,
-            maxWidth: SSHSidebarLayout.totalWidth
+            minWidth: collapseState.width,
+            idealWidth: collapseState.width,
+            maxWidth: collapseState.width
         )
         .background(theme.background)
         .foregroundStyle(theme.foreground)
         .onReceive(tabRefreshTimer) { _ in
             tabProvider.refresh()
+        }
+        .onChange(of: collapseState) { newValue in
+            onCollapseStateChange(newValue)
         }
         .sheet(item: $connectionDraft) { draft in
             SSHConnectionEditorView(viewModel: viewModel, draft: draft)
@@ -193,13 +242,13 @@ struct SSHConnectionsSidebarView: View {
             Spacer(minLength: 0)
 
             Button {
-                onClose()
+                collapseState = collapseState.toggled
             } label: {
-                Image(systemName: "sidebar.left")
+                Image(systemName: collapseState.toggleSystemImage)
                     .font(.system(size: 15, weight: .medium))
                     .frame(width: 40, height: 36)
             }
-            .help("隐藏 SSH 连接")
+            .help(collapseState.toggleHelp)
             .buttonStyle(.plain)
             .foregroundStyle(theme.secondaryForeground)
         }
@@ -213,6 +262,7 @@ struct SSHConnectionsSidebarView: View {
         let isSelected = selectedPanel == panel
         return Button {
             selectedPanel = panel
+            collapseState = .expanded
         } label: {
             VStack(spacing: 4) {
                 Image(systemName: panel.systemImage)

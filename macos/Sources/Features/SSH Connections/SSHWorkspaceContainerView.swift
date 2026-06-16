@@ -15,6 +15,7 @@ final class SSHWorkspaceContainerView: NSView {
     private let sidebarContainer = NSView()
     private let sidebarAppearance: SSHSidebarAppearance
     private let tabProvider = SSHWindowTabProvider()
+    private var sidebarPanelCollapseState: SSHSidebarCollapseState = .expanded
     private var sidebarHostingView: NSHostingView<SSHConnectionsSidebarView>!
     private var sidebarWidthConstraint: NSLayoutConstraint?
     private var sidebarZeroWidthConstraint: NSLayoutConstraint?
@@ -30,6 +31,10 @@ final class SSHWorkspaceContainerView: NSView {
 
     var terminalViewContainer: TerminalViewContainer {
         terminalView
+    }
+
+    var currentSidebarWidth: CGFloat {
+        sidebarWidthConstraint?.constant ?? sidebarPanelCollapseState.width
     }
 
     override var intrinsicContentSize: NSSize {
@@ -57,6 +62,9 @@ final class SSHWorkspaceContainerView: NSView {
                 guard let self else { return }
                 self.delegate?.sshWorkspaceContainerView(self, didRequestConnect: connection)
             },
+            onCollapseStateChange: { [weak self] state in
+                self?.setSidebarPanelCollapseState(state)
+            },
             onClose: { [weak self] in
                 guard let self else { return }
                 self.delegate?.sshWorkspaceContainerViewDidRequestCloseSidebar(self)
@@ -77,6 +85,13 @@ final class SSHWorkspaceContainerView: NSView {
         isSidebarVisible.toggle()
     }
 
+    func setSidebarPanelCollapseState(_ state: SSHSidebarCollapseState) {
+        sidebarPanelCollapseState = state
+        sidebarWidthConstraint?.constant = state.width
+        invalidateIntrinsicContentSize()
+        needsLayout = true
+    }
+
     func updateSidebarConfig(_ config: Ghostty.Config) {
         sidebarAppearance.config = config
     }
@@ -95,7 +110,7 @@ final class SSHWorkspaceContainerView: NSView {
         sidebarHostingView.translatesAutoresizingMaskIntoConstraints = false
         terminalView.translatesAutoresizingMaskIntoConstraints = false
 
-        let width = sidebarContainer.widthAnchor.constraint(equalToConstant: Self.sidebarWidth)
+        let width = sidebarContainer.widthAnchor.constraint(equalToConstant: sidebarPanelCollapseState.width)
         let zeroWidth = sidebarContainer.widthAnchor.constraint(equalToConstant: 0)
         sidebarWidthConstraint = width
         sidebarZeroWidthConstraint = zeroWidth
