@@ -22,6 +22,32 @@ struct SSHConnectionsSidebarViewTests {
         #expect(NSColor(theme.divider).hexString == NSColor(divider).hexString)
     }
 
+    @Test func themeDerivesNavigationChromeFromConfiguredBackground() throws {
+        let background = Color(red: 0.12, green: 0.18, blue: 0.24)
+        let foreground = Color(red: 0.86, green: 0.88, blue: 0.90)
+        let config = SidebarMockConfig(
+            backgroundColor: background,
+            foregroundColor: foreground,
+            splitDividerColor: Color(red: 0.20, green: 0.24, blue: 0.28)
+        )
+
+        let theme = SSHSidebarTheme(config: config)
+        let backgroundColor = try #require(NSColor(background).usingColorSpace(.sRGB))
+        let railColor = try #require(NSColor(theme.railBackground).usingColorSpace(.sRGB))
+        let headerColor = try #require(NSColor(theme.panelHeaderBackground).usingColorSpace(.sRGB))
+        let rowColor = try #require(NSColor(theme.rowBackground).usingColorSpace(.sRGB))
+
+        #expect(railColor.luminance < backgroundColor.luminance)
+        #expect(headerColor.luminance < backgroundColor.luminance)
+        #expect(rowColor.luminance > backgroundColor.luminance)
+    }
+
+    @Test func sidebarLayoutKeepsRailAndTreeReadable() {
+        #expect(SSHSidebarLayout.railWidth == 56)
+        #expect(SSHSidebarLayout.totalWidth == 340)
+        #expect(SSHWorkspaceContainerView.sidebarWidth == SSHSidebarLayout.totalWidth)
+    }
+
     @Test func tabSnapshotsPreserveOrderAndSelectedWindow() {
         let first = NSWindow()
         first.title = "api.example.com"
@@ -58,6 +84,23 @@ struct SSHConnectionsSidebarViewTests {
         provider.selectTab(id: ObjectIdentifier(second))
 
         #expect(provider.selectedWindow === second)
+    }
+
+    @Test func sidebarPanelsUseStableChineseNavigationOrder() {
+        #expect(SSHSidebarPanel.allCases == [.tabs, .servers])
+        #expect(SSHSidebarPanel.defaultPanel == .servers)
+        #expect(SSHSidebarPanel.tabs.title == "页签")
+        #expect(SSHSidebarPanel.servers.title == "服务器")
+    }
+
+    @Test func tabFilteringMatchesTitleCaseInsensitively() {
+        let tabs = [
+            SSHTabSnapshot(id: ObjectIdentifier(NSWindow()), displayIndex: 1, title: "xl-shop-b2c", isSelected: false),
+            SSHTabSnapshot(id: ObjectIdentifier(NSWindow()), displayIndex: 2, title: "Ghostty", isSelected: true),
+        ]
+
+        #expect(SSHTabSnapshot.filtered(tabs, query: "ghost").map(\.title) == ["Ghostty"])
+        #expect(SSHTabSnapshot.filtered(tabs, query: " ").map(\.title) == ["xl-shop-b2c", "Ghostty"])
     }
 }
 

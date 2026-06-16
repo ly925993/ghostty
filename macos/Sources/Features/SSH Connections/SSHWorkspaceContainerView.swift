@@ -9,6 +9,8 @@ protocol SSHWorkspaceContainerViewDelegate: AnyObject {
 
 @MainActor
 final class SSHWorkspaceContainerView: NSView {
+    static let sidebarWidth = SSHSidebarLayout.totalWidth
+
     private let terminalView: TerminalViewContainer
     private let sidebarContainer = NSView()
     private let sidebarAppearance: SSHSidebarAppearance
@@ -93,7 +95,7 @@ final class SSHWorkspaceContainerView: NSView {
         sidebarHostingView.translatesAutoresizingMaskIntoConstraints = false
         terminalView.translatesAutoresizingMaskIntoConstraints = false
 
-        let width = sidebarContainer.widthAnchor.constraint(equalToConstant: 300)
+        let width = sidebarContainer.widthAnchor.constraint(equalToConstant: Self.sidebarWidth)
         let zeroWidth = sidebarContainer.widthAnchor.constraint(equalToConstant: 0)
         sidebarWidthConstraint = width
         sidebarZeroWidthConstraint = zeroWidth

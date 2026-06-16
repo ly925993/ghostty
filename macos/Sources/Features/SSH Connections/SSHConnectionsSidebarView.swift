@@ -30,6 +30,49 @@ struct SSHTabSnapshot: Equatable, Identifiable {
             )
         }
     }
+
+    static func filtered(_ tabs: [SSHTabSnapshot], query: String) -> [SSHTabSnapshot] {
+        let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedQuery.isEmpty else { return tabs }
+
+        return tabs.filter { tab in
+            tab.title.localizedCaseInsensitiveContains(normalizedQuery)
+        }
+    }
+}
+
+enum SSHSidebarPanel: String, CaseIterable, Equatable, Identifiable {
+    case tabs
+    case servers
+
+    static let defaultPanel: SSHSidebarPanel = .servers
+
+    var id: String {
+        rawValue
+    }
+
+    var title: String {
+        switch self {
+        case .tabs:
+            "页签"
+        case .servers:
+            "服务器"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .tabs:
+            "rectangle.stack"
+        case .servers:
+            "server.rack"
+        }
+    }
+}
+
+enum SSHSidebarLayout {
+    static let railWidth: CGFloat = 56
+    static let totalWidth: CGFloat = 340
 }
 
 @MainActor
@@ -93,20 +136,22 @@ struct SSHConnectionsSidebarView: View {
     @State private var groupDraft: SSHConnectionsViewModel.GroupDraft?
     @State private var pendingDelete: PendingDelete?
     @State private var collapsedGroups: Set<String> = []
+    @State private var selectedPanel: SSHSidebarPanel = .defaultPanel
+    @State private var tabSearchText = ""
 
     private let tabRefreshTimer = Timer.publish(every: 0.75, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            divider
-            tabsSection
-            search
-            content
-            divider
-            footer
+        HStack(spacing: 0) {
+            rail
+            dividerVertical
+            mainPanel
         }
-        .frame(minWidth: 260, idealWidth: 300, maxWidth: 360)
+        .frame(
+            minWidth: SSHSidebarLayout.totalWidth,
+            idealWidth: SSHSidebarLayout.totalWidth,
+            maxWidth: SSHSidebarLayout.totalWidth
+        )
         .background(theme.background)
         .foregroundStyle(theme.foreground)
         .onReceive(tabRefreshTimer) { _ in
@@ -139,37 +184,144 @@ struct SSHConnectionsSidebarView: View {
         }
     }
 
-    private var header: some View {
-        HStack(spacing: 8) {
-            Text("SSH 连接")
-                .font(.headline)
-            Spacer()
-            Button {
-                viewModel.refreshVisibleConnections()
-            } label: {
-                Image(systemName: "arrow.clockwise")
+    private var rail: some View {
+        VStack(spacing: 8) {
+            ForEach(SSHSidebarPanel.allCases) { panel in
+                railButton(panel)
             }
-            .help("刷新状态")
-            .buttonStyle(.borderless)
 
-            Button {
-                connectionDraft = viewModel.connectionDraft()
-            } label: {
-                Image(systemName: "plus")
-            }
-            .help("添加服务器")
-            .buttonStyle(.borderless)
+            Spacer(minLength: 0)
 
             Button {
                 onClose()
             } label: {
                 Image(systemName: "sidebar.left")
+                    .font(.system(size: 15, weight: .medium))
+                    .frame(width: 40, height: 36)
             }
             .help("隐藏 SSH 连接")
-            .buttonStyle(.borderless)
+            .buttonStyle(.plain)
+            .foregroundStyle(theme.secondaryForeground)
+        }
+        .padding(.top, 12)
+        .padding(.bottom, 12)
+        .frame(width: SSHSidebarLayout.railWidth)
+        .background(theme.railBackground)
+    }
+
+    private func railButton(_ panel: SSHSidebarPanel) -> some View {
+        let isSelected = selectedPanel == panel
+        return Button {
+            selectedPanel = panel
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: panel.systemImage)
+                    .font(.system(size: 17, weight: .semibold))
+                    .frame(height: 20)
+                Text(panel.title)
+                    .font(.caption2)
+                    .fontWeight(.semibold)
+                    .lineLimit(1)
+            }
+            .frame(width: 44, height: 48)
+            .background(isSelected ? theme.railSelectedBackground : Color.clear)
+            .overlay(alignment: .leading) {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 1.5)
+                        .fill(theme.foreground)
+                        .frame(width: 3, height: 28)
+                        .offset(x: -4)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(isSelected ? theme.foreground : theme.secondaryForeground)
+        .help(panel.title)
+        .accessibilityLabel(panel.title)
+    }
+
+    @ViewBuilder
+    private var mainPanel: some View {
+        switch selectedPanel {
+        case .tabs:
+            tabsPanel
+        case .servers:
+            serversPanel
+        }
+    }
+
+    private var serversPanel: some View {
+        VStack(spacing: 0) {
+            header(title: SSHSidebarPanel.servers.title, mode: .servers)
+            search
+            content
+            divider
+            footer
+        }
+        .background(theme.background)
+    }
+
+    private var tabsPanel: some View {
+        VStack(spacing: 0) {
+            header(title: SSHSidebarPanel.tabs.title, mode: .tabs)
+            tabSearch
+            tabsContent
+        }
+        .background(theme.background)
+    }
+
+    private func header(title: String, mode: SSHSidebarPanel) -> some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold))
+                Text(mode == .servers ? "SSH 连接管理" : "当前窗口页签")
+                    .font(.caption2)
+                    .foregroundStyle(theme.secondaryForeground)
+            }
+            Spacer()
+
+            switch mode {
+            case .tabs:
+                Button {
+                    tabProvider.refresh()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .help("刷新页签")
+                .buttonStyle(.plain)
+                .frame(width: 26, height: 26)
+                .background(theme.rowBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+
+            case .servers:
+                Button {
+                    viewModel.refreshVisibleConnections()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .help("刷新状态")
+                .buttonStyle(.plain)
+                .frame(width: 26, height: 26)
+                .background(theme.rowBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+
+                Button {
+                    connectionDraft = viewModel.connectionDraft()
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .help("添加服务器")
+                .buttonStyle(.plain)
+                .frame(width: 26, height: 26)
+                .background(theme.rowBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.vertical, 11)
+        .background(theme.panelHeaderBackground)
     }
 
     private var search: some View {
@@ -179,51 +331,63 @@ struct SSHConnectionsSidebarView: View {
             TextField("搜索服务器", text: $viewModel.searchText)
                 .textFieldStyle(.plain)
         }
+        .font(.subheadline)
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.vertical, 7)
         .background(theme.searchBackground)
         .overlay(
-            RoundedRectangle(cornerRadius: 6)
+            RoundedRectangle(cornerRadius: 7)
                 .stroke(theme.divider, lineWidth: 0.5)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .clipShape(RoundedRectangle(cornerRadius: 7))
         .padding(10)
     }
 
     @ViewBuilder
-    private var tabsSection: some View {
-        let tabs = tabProvider.tabs
-        if !tabs.isEmpty {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Text("页签")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(theme.secondaryForeground)
-                    Spacer()
-                    Text("\(tabs.count)")
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(theme.secondaryForeground)
-                }
-                .padding(.horizontal, 8)
-
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 2) {
-                        ForEach(tabs) { tab in
-                            tabRow(tab)
-                        }
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                }
-                .scrollIndicators(.never)
-                .frame(maxHeight: CGFloat(min(tabs.count, 4)) * 40 + 4)
-                .background(theme.background)
+    private var tabsContent: some View {
+        let tabs = SSHTabSnapshot.filtered(tabProvider.tabs, query: tabSearchText)
+        if tabs.isEmpty {
+            emptyState(
+                title: tabSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "暂无页签" : "没有匹配页签",
+                systemImage: "rectangle.stack",
+                actionTitle: "刷新"
+            ) {
+                tabProvider.refresh()
             }
-            .padding(.vertical, 8)
-
-            divider
+        } else {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 4) {
+                    ForEach(tabs) { tab in
+                        tabRow(tab)
+                    }
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+            }
+            .background(theme.background)
         }
+    }
+
+    private var tabSearch: some View {
+        HStack {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(theme.secondaryForeground)
+            TextField("搜索页签", text: $tabSearchText)
+                .textFieldStyle(.plain)
+            Text("\(SSHTabSnapshot.filtered(tabProvider.tabs, query: tabSearchText).count)")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(theme.secondaryForeground)
+        }
+        .font(.subheadline)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(theme.searchBackground)
+        .overlay(
+            RoundedRectangle(cornerRadius: 7)
+                .stroke(theme.divider, lineWidth: 0.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 7))
+        .padding(10)
     }
 
     @ViewBuilder
@@ -253,7 +417,7 @@ struct SSHConnectionsSidebarView: View {
                     ForEach(viewModel.sections) { section in
                         let isExpanded = isSectionExpanded(section)
 
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: 3) {
                             Button {
                                 toggleSection(section)
                             } label: {
@@ -270,12 +434,12 @@ struct SSHConnectionsSidebarView: View {
                                         connectionRow(connection)
                                     }
                                 }
-                                .padding(.leading, 18)
+                                .padding(.leading, 8)
                             }
                         }
                     }
                 }
-                .padding(.horizontal, 8)
+                .padding(.horizontal, 10)
                 .padding(.vertical, 6)
             }
             .background(theme.background)
@@ -290,9 +454,9 @@ struct SSHConnectionsSidebarView: View {
                 Text("\(tab.displayIndex)")
                     .font(.caption.monospacedDigit())
                     .fontWeight(.semibold)
-                    .frame(width: 22, height: 22)
-                    .background(tab.isSelected ? theme.activePillBackground : theme.rowBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                    .frame(width: 24, height: 22)
+                    .background(tab.isSelected ? theme.activePillBackground : theme.badgeBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(tab.title)
@@ -312,11 +476,11 @@ struct SSHConnectionsSidebarView: View {
                         .foregroundStyle(theme.foreground)
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 7)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(tab.isSelected ? theme.selectedBackground : Color.clear)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .clipShape(RoundedRectangle(cornerRadius: 7))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -351,11 +515,14 @@ struct SSHConnectionsSidebarView: View {
                 .font(.caption)
                 .fontWeight(.semibold)
                 .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                .frame(width: 12)
+                .frame(width: 10)
                 .foregroundStyle(theme.secondaryForeground)
             Image(systemName: section.group == nil ? "tray" : "folder")
                 .foregroundStyle(theme.secondaryForeground)
+                .frame(width: 16)
             Text(section.title)
+                .font(.caption)
+                .fontWeight(.semibold)
                 .lineLimit(1)
             Spacer()
             Text("\(section.connections.count)")
@@ -363,10 +530,10 @@ struct SSHConnectionsSidebarView: View {
                 .font(.caption.monospacedDigit())
         }
         .padding(.horizontal, 8)
-        .padding(.vertical, 6)
+        .padding(.vertical, 7)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(theme.rowBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .background(theme.sectionBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 7))
     }
 
     private func connectionRow(_ connection: SSHConnection) -> some View {
@@ -377,6 +544,7 @@ struct SSHConnectionsSidebarView: View {
                 statusIcon(for: connection)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(connection.name)
+                        .font(.subheadline)
                         .lineLimit(1)
                     Text(connectionSubtitle(connection))
                         .font(.caption)
@@ -385,9 +553,11 @@ struct SSHConnectionsSidebarView: View {
                 }
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .background(theme.rowBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 7))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -472,6 +642,12 @@ struct SSHConnectionsSidebarView: View {
             .frame(height: 0.5)
     }
 
+    private var dividerVertical: some View {
+        Rectangle()
+            .fill(theme.divider)
+            .frame(width: 0.5)
+    }
+
     private var theme: SSHSidebarTheme {
         SSHSidebarTheme(config: appearance.config)
     }
@@ -534,25 +710,52 @@ struct SSHConnectionsSidebarView: View {
 
 struct SSHSidebarTheme {
     let background: Color
+    let railBackground: Color
+    let panelHeaderBackground: Color
     let foreground: Color
     let secondaryForeground: Color
     let searchBackground: Color
+    let sectionBackground: Color
     let rowBackground: Color
     let selectedBackground: Color
+    let railSelectedBackground: Color
+    let badgeBackground: Color
     let activePillBackground: Color
     let divider: Color
 
     init(config: Ghostty.Config?) {
         let background = config?.backgroundColor ?? Color(nsColor: .controlBackgroundColor)
         let foreground = config?.foregroundColor ?? Color.primary
+        let baseColor = NSColor(background)
+        let isLightBackground = baseColor.isLightColor
+        let darkerAmount: CGFloat = isLightBackground ? 0.05 : 0.12
+        let lighterAmount: Double = isLightBackground ? -0.035 : 0.055
+        let chromeColor = Color(baseColor.darken(by: darkerAmount))
+        let lift = foreground.opacity(isLightBackground ? 0.08 : 0.09)
 
         self.background = background
+        railBackground = chromeColor
+        panelHeaderBackground = chromeColor
         self.foreground = foreground
         secondaryForeground = foreground.opacity(0.68)
         divider = config?.splitDividerColor ?? foreground.opacity(0.22)
-        searchBackground = foreground.opacity(0.06)
-        rowBackground = foreground.opacity(0.045)
-        selectedBackground = foreground.opacity(0.12)
+        searchBackground = background.adjustedBrightness(by: lighterAmount)
+        sectionBackground = background.adjustedBrightness(by: lighterAmount * 0.55)
+        rowBackground = background.adjustedBrightness(by: lighterAmount)
+        selectedBackground = background.adjustedBrightness(by: isLightBackground ? -0.08 : 0.12)
+        railSelectedBackground = lift
+        badgeBackground = lift
         activePillBackground = foreground.opacity(0.18)
+    }
+}
+
+private extension Color {
+    func adjustedBrightness(by amount: Double) -> Color {
+        let color = NSColor(self).usingColorSpace(.sRGB) ?? NSColor(self)
+        let red = min(max(Double(color.redComponent) + amount, 0), 1)
+        let green = min(max(Double(color.greenComponent) + amount, 0), 1)
+        let blue = min(max(Double(color.blueComponent) + amount, 0), 1)
+
+        return Color(red: red, green: green, blue: blue, opacity: Double(color.alphaComponent))
     }
 }
