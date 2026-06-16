@@ -8,9 +8,9 @@ repo_root=${script_dir:h}
 scheme="Ghostty"
 configuration="Debug"
 arch="arm64"
-app_name="Ghostty SSH Test"
+app_name="Ghostty SSH"
 bundle_id="com.mitchellh.ghostty.ssh-test"
-dmg_name="Ghostty-SSH-Test.dmg"
+dmg_name="Ghostty-SSH.dmg"
 install_dir="/Applications"
 dist_dir="$repo_root/dist"
 prepare_core="auto"
@@ -40,9 +40,9 @@ Options:
   --configuration <name>  Xcode configuration. Default: Debug
   --scheme <name>         Xcode scheme. Default: Ghostty
   --arch <name>           Xcode architecture. Default: arm64
-  --name <name>           App display name. Default: Ghostty SSH Test
+  --name <name>           App display name. Default: Ghostty SSH
   --bundle-id <id>        Bundle identifier. Default: com.mitchellh.ghostty.ssh-test
-  --dmg-name <name>       DMG filename. Default: Ghostty-SSH-Test.dmg
+  --dmg-name <name>       DMG filename. Default: Ghostty-SSH.dmg
   --install-dir <path>    Install destination. Default: /Applications
   --dist-dir <path>       DMG output directory. Default: dist
   --prepare-core          Force Zig preparation of GhosttyKit/resources
@@ -54,8 +54,8 @@ Options:
   -h, --help              Show this help
 
 Default outputs:
-  /Applications/Ghostty SSH Test.app
-  dist/Ghostty-SSH-Test.dmg
+  /Applications/Ghostty SSH.app
+  dist/Ghostty-SSH.dmg
 EOF
 }
 

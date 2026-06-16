@@ -5,6 +5,7 @@ struct SSHConnectionEditorView: View {
 
     @ObservedObject var viewModel: SSHConnectionsViewModel
     @State var draft: SSHConnectionsViewModel.ConnectionDraft
+    @State private var isPrivateKeySelectionPresented = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -56,17 +57,17 @@ struct SSHConnectionEditorView: View {
         }
         .padding(20)
         .frame(width: 420)
+        .sheet(isPresented: $isPrivateKeySelectionPresented) {
+            SSHPrivateKeySelectionView(selectedPath: $draft.privateKeyPath)
+        }
     }
 
     private var privateKeyField: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("私钥")
-            HStack(spacing: 8) {
-                TextField("私钥", text: $draft.privateKeyPath)
-                Button("浏览...") {
-                    guard let path = SSHPrivateKeyFilePicker.select() else { return }
-                    draft.privateKeyPath = path
-                }
+        HStack(spacing: 8) {
+            Text("用户密钥")
+            TextField("", text: $draft.privateKeyPath)
+            Button("浏览...") {
+                isPrivateKeySelectionPresented = true
             }
         }
     }
