@@ -1192,7 +1192,7 @@ extension AppDelegate {
         syncMenuShortcut(config, action: "toggle_window_float_on_top", menuItem: self.menuFloatOnTop)
         syncMenuShortcut(config, action: "inspector:toggle", menuItem: self.menuTerminalInspector)
         syncMenuShortcut(config, action: "toggle_command_palette", menuItem: self.menuCommandPalette)
-        syncMenuShortcut(config, action: nil, menuItem: self.menuSSHConnections)
+        syncMenuShortcut(config, action: "toggle_ssh_connections_sidebar", menuItem: self.menuSSHConnections)
 
         syncMenuShortcut(config, action: "toggle_secure_input", menuItem: self.menuSecureInput)
 

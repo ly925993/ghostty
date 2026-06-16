@@ -777,6 +777,7 @@ pub const Application = extern struct {
             .secure_input,
             .close_all_windows,
             .float_window,
+            .toggle_ssh_connections_sidebar,
             .toggle_visibility,
             .toggle_background_opacity,
             .cell_size,

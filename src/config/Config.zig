@@ -6549,6 +6549,14 @@ pub const Keybinds = struct {
             .{ .write_screen_file = .open },
         );
 
+        if (builtin.target.os.tag.isDarwin()) {
+            try self.set.put(
+                alloc,
+                .{ .key = .{ .unicode = 's' }, .mods = .{ .shift = true, .alt = true, .super = true } },
+                .toggle_ssh_connections_sidebar,
+            );
+        }
+
         // Expand Selection
         try self.set.putFlags(
             alloc,

@@ -587,6 +587,9 @@ extension Ghostty {
             case GHOSTTY_ACTION_TOGGLE_COMMAND_PALETTE:
                 toggleCommandPalette(app, target: target)
 
+            case GHOSTTY_ACTION_TOGGLE_SSH_CONNECTIONS_SIDEBAR:
+                return toggleSSHConnectionsSidebar(app, target: target)
+
             case GHOSTTY_ACTION_TOGGLE_MAXIMIZE:
                 toggleMaximize(app, target: target)
 
@@ -1016,6 +1019,28 @@ extension Ghostty {
 
             default:
                 assertionFailure()
+            }
+        }
+
+        private static func toggleSSHConnectionsSidebar(
+            _ app: ghostty_app_t,
+            target: ghostty_target_s
+        ) -> Bool {
+            switch target.tag {
+            case GHOSTTY_TARGET_APP:
+                Ghostty.logger.warning("toggle SSH connections sidebar does nothing with an app target")
+                return false
+
+            case GHOSTTY_TARGET_SURFACE:
+                guard let surface = target.target.surface else { return false }
+                guard let surfaceView = self.surfaceView(from: surface) else { return false }
+                guard let controller = surfaceView.window?.windowController as? TerminalController else { return false }
+                controller.toggleSSHConnectionsSidebar(self)
+                return true
+
+            default:
+                assertionFailure()
+                return false
             }
         }
 

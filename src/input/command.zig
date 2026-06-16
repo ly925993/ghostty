@@ -712,6 +712,7 @@ fn actionCommands(action: Action.Key) []const Command {
         // palette context.
         .toggle_command_palette,
         .toggle_quick_terminal,
+        .toggle_ssh_connections_sidebar,
         .toggle_visibility,
         .previous_tab,
         .next_tab,

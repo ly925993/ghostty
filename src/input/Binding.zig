@@ -845,6 +845,11 @@ pub const Action = union(enum) {
     /// configuration file to customize its behavior.
     toggle_quick_terminal,
 
+    /// Toggle the SSH connections sidebar for the current terminal window.
+    ///
+    /// Only implemented on macOS in the SSH test build.
+    toggle_ssh_connections_sidebar,
+
     /// Show or hide all windows. If all windows become shown, we also ensure
     /// Ghostty becomes focused. When hiding all windows, focus is yielded
     /// to the next application as determined by the OS.
@@ -1397,6 +1402,7 @@ pub const Action = union(enum) {
             .toggle_secure_input,
             .toggle_mouse_reporting,
             .toggle_command_palette,
+            .toggle_ssh_connections_sidebar,
             .toggle_background_opacity,
             .show_on_screen_keyboard,
             .reset_window_size,
@@ -3322,6 +3328,25 @@ test "parse: action no parameters" {
         try parseSingle("a=ignore"),
     );
     try testing.expectError(Error.InvalidFormat, parseSingle("a=ignore:A"));
+}
+
+test "parse: SSH sidebar keybind action" {
+    const testing = std.testing;
+
+    try testing.expectEqual(
+        Binding{
+            .trigger = .{
+                .mods = .{
+                    .shift = true,
+                    .alt = true,
+                    .super = true,
+                },
+                .key = .{ .unicode = 's' },
+            },
+            .action = .{ .toggle_ssh_connections_sidebar = {} },
+        },
+        try parseSingle("cmd+option+shift+s=toggle_ssh_connections_sidebar"),
+    );
 }
 
 test "parse: action with string" {

@@ -5429,6 +5429,12 @@ pub fn performBindingAction(self: *Surface, action: input.Binding.Action) !bool 
             {},
         ),
 
+        .toggle_ssh_connections_sidebar => return try self.rt_app.performAction(
+            .{ .surface = self },
+            .toggle_ssh_connections_sidebar,
+            {},
+        ),
+
         .toggle_background_opacity => return try self.rt_app.performAction(
             .{ .surface = self },
             .toggle_background_opacity,
