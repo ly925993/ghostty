@@ -636,6 +636,9 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
 
         // Call this last in case it uses any of the properties above.
         window.syncAppearance(surfaceConfig)
+        if let workspace = window.contentView as? SSHWorkspaceContainerView {
+            workspace.updateSidebarConfig(ghostty.config)
+        }
         terminalViewContainer?.ghosttyConfigDidChange(ghostty.config, preferredBackgroundColor: window.preferredBackgroundColor)
     }
 

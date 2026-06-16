@@ -11,6 +11,8 @@ protocol SSHWorkspaceContainerViewDelegate: AnyObject {
 final class SSHWorkspaceContainerView: NSView {
     private let terminalView: TerminalViewContainer
     private let sidebarContainer = NSView()
+    private let sidebarAppearance: SSHSidebarAppearance
+    private let tabProvider = SSHWindowTabProvider()
     private var sidebarHostingView: NSHostingView<SSHConnectionsSidebarView>!
     private var sidebarWidthConstraint: NSLayoutConstraint?
     private var sidebarZeroWidthConstraint: NSLayoutConstraint?
@@ -38,12 +40,17 @@ final class SSHWorkspaceContainerView: NSView {
         config: Ghostty.Config? = nil
     ) {
         self.terminalView = terminalView
+        self.sidebarAppearance = SSHSidebarAppearance(config: config)
 
         super.init(frame: .zero)
 
+        tabProvider.windowProvider = { [weak self] in
+            self?.window
+        }
         let sidebarView = SSHConnectionsSidebarView(
             viewModel: viewModel,
-            config: config,
+            appearance: sidebarAppearance,
+            tabProvider: tabProvider,
             onConnect: { [weak self] connection in
                 guard let self else { return }
                 self.delegate?.sshWorkspaceContainerView(self, didRequestConnect: connection)
@@ -66,6 +73,15 @@ final class SSHWorkspaceContainerView: NSView {
 
     func toggleSidebar() {
         isSidebarVisible.toggle()
+    }
+
+    func updateSidebarConfig(_ config: Ghostty.Config) {
+        sidebarAppearance.config = config
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        tabProvider.refresh()
     }
 
     private func setup() {
