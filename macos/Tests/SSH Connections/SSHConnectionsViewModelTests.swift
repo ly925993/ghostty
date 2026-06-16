@@ -146,7 +146,7 @@ struct SSHConnectionsViewModelTests {
 
     private func makeViewModel(
         library: SSHConnectionLibrary = SSHConnectionLibrary(),
-        checker: SSHReachabilityChecker = SSHReachabilityChecker(prober: FakeViewModelProber(results: [:]))
+        checker: SSHReachabilityChecker? = nil
     ) -> SSHConnectionsViewModel {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("ghostty-ssh-view-model-tests", isDirectory: true)
@@ -154,7 +154,10 @@ struct SSHConnectionsViewModelTests {
             .appendingPathComponent("ssh-connections.json")
         let store = SSHConnectionStore(fileURL: url)
         _ = store.save(library)
-        return SSHConnectionsViewModel(store: store, reachabilityChecker: checker)
+        return SSHConnectionsViewModel(
+            store: store,
+            reachabilityChecker: checker ?? SSHReachabilityChecker(prober: FakeViewModelProber(results: [:]))
+        )
     }
 
     private func waitUntil(

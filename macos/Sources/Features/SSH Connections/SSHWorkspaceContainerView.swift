@@ -17,7 +17,7 @@ final class SSHWorkspaceContainerView: NSView {
 
     weak var delegate: SSHWorkspaceContainerViewDelegate?
 
-    var isSidebarVisible: Bool = false {
+    var isSidebarVisible: Bool = true {
         didSet {
             guard oldValue != isSidebarVisible else { return }
             updateSidebarVisibility()
@@ -96,9 +96,7 @@ final class SSHWorkspaceContainerView: NSView {
             terminalView.trailingAnchor.constraint(equalTo: trailingAnchor),
         ])
 
-        width.isActive = false
-        zeroWidth.isActive = true
-        sidebarContainer.isHidden = true
+        updateSidebarVisibility()
     }
 
     private func updateSidebarVisibility() {
